@@ -83,14 +83,12 @@ export const generateRandomName = (c: Context<HonoCustomType>): string => {
         1
     );
 
-    // Build full name recursively until minimum length is reached
-    const buildName = (currentName: string = ""): string => {
-        return currentName.length >= minLength
-            ? currentName
-            : buildName(currentName + Math.random().toString(36).substring(2, 15));
-    };
-
-    const fullName = buildName();
+    const digits = "0123456789";
+    const targetLength = Math.min(maxLength, Math.max(minLength, 1));
+    let fullName = "";
+    for (let i = 0; i < targetLength; i++) {
+        fullName += digits.charAt(Math.floor(Math.random() * digits.length));
+    }
 
     // Return truncated to max length
     return fullName.substring(0, Math.min(fullName.length, maxLength));
