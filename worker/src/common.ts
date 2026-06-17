@@ -83,12 +83,17 @@ export const generateRandomName = (c: Context<HonoCustomType>): string => {
         1
     );
 
-    const digits = "0123456789";
-    const targetLength = Math.min(maxLength, Math.max(minLength, 1));
-    let fullName = "";
-    for (let i = 0; i < targetLength; i++) {
-        fullName += digits.charAt(Math.floor(Math.random() * digits.length));
-    }
+    const minYear = 2002;
+    const currentYear = new Date().getFullYear();
+    const year = minYear + Math.floor(Math.random() * (currentYear - minYear + 1));
+    const month = Math.floor(Math.random() * 12) + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const day = Math.floor(Math.random() * daysInMonth) + 1;
+    const fullName = [
+        year.toString(),
+        month.toString().padStart(2, "0"),
+        day.toString().padStart(2, "0"),
+    ].join("");
 
     // Return truncated to max length
     return fullName.substring(0, Math.min(fullName.length, maxLength));

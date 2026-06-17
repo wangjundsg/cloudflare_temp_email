@@ -145,14 +145,17 @@ const generateNameLoading = ref(false);
 const generateName = async () => {
     try {
         generateNameLoading.value = true;
-        const minLength = Math.max(openSettings.value.minAddressLen || 1, 1);
-        const maxLength = Math.max(openSettings.value.maxAddressLen || 30, 1);
-        const targetLength = Math.min(maxLength, minLength);
-        let name = "";
-        for (let i = 0; i < targetLength; i++) {
-            name += Math.floor(Math.random() * 10).toString();
-        }
-        emailName.value = name;
+        const minYear = 2002;
+        const currentYear = new Date().getFullYear();
+        const year = minYear + Math.floor(Math.random() * (currentYear - minYear + 1));
+        const month = Math.floor(Math.random() * 12) + 1;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const day = Math.floor(Math.random() * daysInMonth) + 1;
+        emailName.value = [
+            year.toString(),
+            month.toString().padStart(2, "0"),
+            day.toString().padStart(2, "0"),
+        ].join("");
     } catch (error) {
         message.error(error.message || "error");
     } finally {
