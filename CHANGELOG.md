@@ -10,6 +10,7 @@
 
 ### Features
 
+- feat: |Address| 将自动邮箱名生成规则改为内置常见英文名 + 4 位随机月日（如 `emily0921`），替代固定前缀 + `YYYYMMDD`
 - feat: |Frontend| 新增 `DISABLE_SHOW_GITHUB_FOR_USER` 配置，可仅对普通用户隐藏 Header 的 GitHub/版本入口，admin 仍可见（issue #1041）
 - feat: |Frontend| 将邮箱地址凭证弹窗升级为“地址凭证与连接方式”，复用普通用户与 admin 创建邮箱结果弹窗；支持通过 `ENABLE_AGENT_EMAIL_INFO` 展示 AI Agent 接入信息，并通过 `SMTP_IMAP_PROXY_CONFIG` 展示 SMTP/IMAP 客户端连接信息
 - docs: |随机子域名| 在前端“启用随机子域名”提示与 `subdomain` / `worker-vars` 文档（中英）中明确说明：要让 `name@<随机>.abc.com` 真正收到邮件，必须在基础域名 DNS 中为 `*` 子域添加通配 MX 记录，Email Routing 子域不继承父域配置（issue #1035）
@@ -24,6 +25,8 @@
 - fix: |Frontend| 修复 iOS Safari 点击输入框时因移动端表单控件字号过小导致页面自动放大的问题
 
 ### Improvements
+
+- perf: |Admin| 管理员邮箱地址列表分页选项新增 `500` / `10000`，并仅对 `/admin/address` 放宽列表查询上限，便于批量选择和清理大量地址
 
 ## v1.8.0
 

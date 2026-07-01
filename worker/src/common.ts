@@ -13,6 +13,15 @@ const DEFAULT_RANDOM_SUBDOMAIN_LENGTH = 8;
 const MAX_RANDOM_SUBDOMAIN_ATTEMPTS = 5;
 const MAX_DOMAIN_LENGTH = 253;
 const DOMAIN_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const RANDOM_ADDRESS_NAMES = [
+    'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'charles',
+    'joseph', 'thomas', 'christopher', 'daniel', 'paul', 'mark', 'donald', 'george',
+    'kenneth', 'steven', 'edward', 'brian', 'ronald', 'anthony', 'kevin', 'jason',
+    'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica',
+    'sarah', 'karen', 'nancy', 'lisa', 'betty', 'margaret', 'sandra', 'ashley',
+    'kimberly', 'emily', 'donna', 'michelle', 'carol', 'amanda', 'melissa', 'olivia',
+    'emma', 'sophia', 'ava', 'isabella', 'mia', 'amelia', 'harper', 'evelyn'
+];
 
 const normalizeDomainValue = (domain: string): string => {
     return trimLower(domain);
@@ -83,17 +92,11 @@ export const generateRandomName = (c: Context<HonoCustomType>): string => {
         1
     );
 
-    const minYear = 2002;
-    const currentYear = new Date().getFullYear();
-    const year = minYear + Math.floor(Math.random() * (currentYear - minYear + 1));
+    const randomName = RANDOM_ADDRESS_NAMES[Math.floor(Math.random() * RANDOM_ADDRESS_NAMES.length)];
     const month = Math.floor(Math.random() * 12) + 1;
-    const daysInMonth = new Date(year, month, 0).getDate();
+    const daysInMonth = new Date(2000, month, 0).getDate();
     const day = Math.floor(Math.random() * daysInMonth) + 1;
-    const fullName = [
-        year.toString(),
-        month.toString().padStart(2, "0"),
-        day.toString().padStart(2, "0"),
-    ].join("");
+    const fullName = `${randomName}${month.toString().padStart(2, "0")}${day.toString().padStart(2, "0")}`;
 
     // Return truncated to max length
     return fullName.substring(0, Math.min(fullName.length, maxLength));
@@ -614,7 +617,8 @@ export const handleListQuery = async (
     offset: string | number | undefined | null,
     /** Must be pre-validated (e.g. whitelist), NOT raw user input. Interpolated directly into SQL. */
     orderBy?: string,
-    hiddenFields: string[] = []
+    hiddenFields: string[] = [],
+    maxLimit = 100
 ): Promise<Response> => {
     const msgs = i18n.getMessagesbyContext(c);
     if (typeof limit === "string") {
@@ -623,7 +627,7 @@ export const handleListQuery = async (
     if (typeof offset === "string") {
         offset = parseInt(offset);
     }
-    if (!limit || limit < 0 || limit > 100) {
+    if (!limit || limit < 0 || limit > maxLimit) {
         return c.text(msgs.InvalidLimitMsg, 400)
     }
     if (offset == null || offset == undefined || offset < 0) {

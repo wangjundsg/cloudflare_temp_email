@@ -10,6 +10,7 @@
 
 ### Features
 
+- feat: |Address| Change automatic mailbox name generation to built-in common English names plus a random 4-digit month/day suffix (for example `emily0921`), replacing fixed prefix + `YYYYMMDD`
 - feat: |Frontend| Add `DISABLE_SHOW_GITHUB_FOR_USER` to hide the Header GitHub/version entry from normal users while keeping it visible to admin users (issue #1041)
 - feat: |Frontend| Upgrade the address credential dialog to "Address Credentials & Connection Methods" and reuse it for both normal users and admin-created addresses; support showing AI Agent access via `ENABLE_AGENT_EMAIL_INFO` and SMTP/IMAP client settings via `SMTP_IMAP_PROXY_CONFIG`
 - docs: |Random Subdomain| Clarify in the "Use Random Subdomain" frontend tip and the `subdomain` / `worker-vars` docs (zh & en) that receiving mail on `name@<random>.abc.com` requires a wildcard `*` MX record under the base domain in DNS, because Cloudflare Email Routing does not inherit the apex configuration onto subdomains (issue #1035)
@@ -24,6 +25,8 @@
 - fix: |Frontend| Prevent iOS Safari from auto-zooming the page when focusing mobile form controls with small font sizes
 
 ### Improvements
+
+- perf: |Admin| Add `500` / `10000` page-size options to the admin address list and raise only the `/admin/address` list limit to support bulk selection and cleanup for large address sets
 
 ## v1.8.0
 

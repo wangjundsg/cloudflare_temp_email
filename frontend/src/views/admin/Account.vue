@@ -555,7 +555,7 @@ onMounted(async () => {
         <div style="overflow: auto;">
             <div style="display: inline-block;">
                 <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count"
-                    :page-sizes="[20, 50, 100]" show-size-picker>
+                    :page-sizes="[20, 100, 500, 10000]" show-size-picker>
                     <template #prefix="{ itemCount }">
                         {{ t('itemCount') }}: {{ itemCount }}
                     </template>

@@ -9,6 +9,7 @@ import Turnstile from '../../components/Turnstile.vue'
 
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
+import { generateRandomAddressName } from '../../utils/address-name'
 import { getRouterPathWithLang, hashPassword } from '../../utils'
 
 const props = defineProps({
@@ -145,17 +146,7 @@ const generateNameLoading = ref(false);
 const generateName = async () => {
     try {
         generateNameLoading.value = true;
-        const minYear = 2002;
-        const currentYear = new Date().getFullYear();
-        const year = minYear + Math.floor(Math.random() * (currentYear - minYear + 1));
-        const month = Math.floor(Math.random() * 12) + 1;
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const day = Math.floor(Math.random() * daysInMonth) + 1;
-        emailName.value = [
-            year.toString(),
-            month.toString().padStart(2, "0"),
-            day.toString().padStart(2, "0"),
-        ].join("");
+        emailName.value = generateRandomAddressName();
     } catch (error) {
         message.error(error.message || "error");
     } finally {
