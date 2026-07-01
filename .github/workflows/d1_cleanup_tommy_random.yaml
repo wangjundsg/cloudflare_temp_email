@@ -42,33 +42,22 @@ jobs:
           WRANGLER_TOML_CONTENT: ${{ secrets.BACKEND_TOML }}
           DAYS: ${{ github.event.inputs.days }}
         run: |
+          if ! [[ "$DAYS" =~ ^[0-9]+$ ]]; then
+            echo "days must be a positive integer"
+            exit 1
+          fi
           printf '%s\n' "$WRANGLER_TOML_CONTENT" > wrangler.toml
           pnpm install --no-frozen-lockfile
-          cat > /tmp/inspect.sql <<'SQL'
-          SELECT COUNT(*) AS count
-          FROM address
-          WHERE name LIKE 'tommy%@%'
-            AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-            AND created_at >= datetime('now', '-' || ?1 || ' day');
+          MATCH_CONDITION="name LIKE 'tommy%@%' AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*' AND created_at >= datetime('now', '-${DAYS} day')"
 
-          SELECT date(created_at) AS day, COUNT(*) AS count
-          FROM address
-          WHERE name LIKE 'tommy%@%'
-            AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-            AND created_at >= datetime('now', '-' || ?1 || ' day')
-          GROUP BY date(created_at)
-          ORDER BY day DESC;
+          echo "=== Matching count ==="
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "SELECT COUNT(*) AS count FROM address WHERE ${MATCH_CONDITION};"
 
-          SELECT id, name, created_at, updated_at
-          FROM address
-          WHERE name LIKE 'tommy%@%'
-            AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-            AND created_at >= datetime('now', '-' || ?1 || ' day')
-          ORDER BY id DESC
-          LIMIT 30;
-          SQL
-          sed "s/?1/${DAYS}/g" /tmp/inspect.sql > /tmp/inspect.final.sql
-          pnpm wrangler d1 execute cloudflare-temp-email --remote --file /tmp/inspect.final.sql
+          echo "=== Matching count by day ==="
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "SELECT date(created_at) AS day, COUNT(*) AS count FROM address WHERE ${MATCH_CONDITION} GROUP BY date(created_at) ORDER BY day DESC;"
+
+          echo "=== Latest 30 samples ==="
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "SELECT id, name, created_at, updated_at FROM address WHERE ${MATCH_CONDITION} ORDER BY id DESC LIMIT 30;"
 
       - name: Delete matching addresses
         if: ${{ github.event.inputs.confirm == 'true' }}
@@ -79,55 +68,21 @@ jobs:
           WRANGLER_TOML_CONTENT: ${{ secrets.BACKEND_TOML }}
           DAYS: ${{ github.event.inputs.days }}
         run: |
+          if ! [[ "$DAYS" =~ ^[0-9]+$ ]]; then
+            echo "days must be a positive integer"
+            exit 1
+          fi
           printf '%s\n' "$WRANGLER_TOML_CONTENT" > wrangler.toml
-          cat > /tmp/delete.sql <<'SQL'
-          DELETE FROM raw_mails
-          WHERE address IN (
-            SELECT name FROM address
-            WHERE name LIKE 'tommy%@%'
-              AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-              AND created_at >= datetime('now', '-' || ?1 || ' day')
-          );
+          MATCH_CONDITION="name LIKE 'tommy%@%' AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*' AND created_at >= datetime('now', '-${DAYS} day')"
+          MATCH_NAMES="SELECT name FROM address WHERE ${MATCH_CONDITION}"
+          MATCH_IDS="SELECT id FROM address WHERE ${MATCH_CONDITION}"
 
-          DELETE FROM sendbox
-          WHERE address IN (
-            SELECT name FROM address
-            WHERE name LIKE 'tommy%@%'
-              AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-              AND created_at >= datetime('now', '-' || ?1 || ' day')
-          );
-
-          DELETE FROM auto_reply_mails
-          WHERE address IN (
-            SELECT name FROM address
-            WHERE name LIKE 'tommy%@%'
-              AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-              AND created_at >= datetime('now', '-' || ?1 || ' day')
-          );
-
-          DELETE FROM address_sender
-          WHERE address IN (
-            SELECT name FROM address
-            WHERE name LIKE 'tommy%@%'
-              AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-              AND created_at >= datetime('now', '-' || ?1 || ' day')
-          );
-
-          DELETE FROM users_address
-          WHERE address_id IN (
-            SELECT id FROM address
-            WHERE name LIKE 'tommy%@%'
-              AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-              AND created_at >= datetime('now', '-' || ?1 || ' day')
-          );
-
-          DELETE FROM address
-          WHERE name LIKE 'tommy%@%'
-            AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-            AND created_at >= datetime('now', '-' || ?1 || ' day');
-          SQL
-          sed "s/?1/${DAYS}/g" /tmp/delete.sql > /tmp/delete.final.sql
-          pnpm wrangler d1 execute cloudflare-temp-email --remote --file /tmp/delete.final.sql
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "DELETE FROM raw_mails WHERE address IN (${MATCH_NAMES});"
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "DELETE FROM sendbox WHERE address IN (${MATCH_NAMES});"
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "DELETE FROM auto_reply_mails WHERE address IN (${MATCH_NAMES});"
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "DELETE FROM address_sender WHERE address IN (${MATCH_NAMES});"
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "DELETE FROM users_address WHERE address_id IN (${MATCH_IDS});"
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "DELETE FROM address WHERE ${MATCH_CONDITION};"
 
       - name: Verify remaining matches
         if: ${{ github.event.inputs.confirm == 'true' }}
@@ -138,13 +93,10 @@ jobs:
           WRANGLER_TOML_CONTENT: ${{ secrets.BACKEND_TOML }}
           DAYS: ${{ github.event.inputs.days }}
         run: |
+          if ! [[ "$DAYS" =~ ^[0-9]+$ ]]; then
+            echo "days must be a positive integer"
+            exit 1
+          fi
           printf '%s\n' "$WRANGLER_TOML_CONTENT" > wrangler.toml
-          cat > /tmp/verify.sql <<'SQL'
-          SELECT COUNT(*) AS remaining
-          FROM address
-          WHERE name LIKE 'tommy%@%'
-            AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*'
-            AND created_at >= datetime('now', '-' || ?1 || ' day');
-          SQL
-          sed "s/?1/${DAYS}/g" /tmp/verify.sql > /tmp/verify.final.sql
-          pnpm wrangler d1 execute cloudflare-temp-email --remote --file /tmp/verify.final.sql
+          MATCH_CONDITION="name LIKE 'tommy%@%' AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*' AND created_at >= datetime('now', '-${DAYS} day')"
+          pnpm wrangler d1 execute cloudflare-temp-email --remote --command "SELECT COUNT(*) AS remaining FROM address WHERE ${MATCH_CONDITION};"
