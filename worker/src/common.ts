@@ -519,6 +519,12 @@ export const cleanup = async (
                 `name NOT IN (SELECT DISTINCT address FROM raw_mails WHERE address IS NOT NULL) AND created_at < datetime('now', '-${cleanDays} day')`
             )
             break;
+        case "tommyRandomAddress":
+            await batchDeleteAddressWithData(
+                c,
+                `name LIKE 'tommy%@%' AND substr(name, 6, instr(name, '@') - 6) GLOB '*[a-z]*' AND created_at >= datetime('now', '-${cleanDays} day')`
+            )
+            break;
         default:
             throw new Error(msgs.InvalidCleanTypeMsg)
     }
