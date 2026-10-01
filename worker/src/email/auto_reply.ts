@@ -31,7 +31,9 @@ export const auto_reply = async (
     if (getBooleanValue(env.ENABLE_AUTO_REPLY) && message_id) {
         try {
             const results = await env.DB.prepare(
-                `SELECT * FROM auto_reply_mails where address = ? and enabled = 1`
+                `SELECT * FROM auto_reply_mails WHERE address = ? AND enabled = 1`
+                + ` AND NOT EXISTS (SELECT 1 FROM address a JOIN settings s`
+                + ` ON s.key = 'address_archived:' || a.id WHERE a.name = auto_reply_mails.address)`
             ).bind(toAddress).first<Record<string, string>>();
             if (results && matchSender(message.from, results.source_prefix)) {
                 if (!results.subject || !results.message) {

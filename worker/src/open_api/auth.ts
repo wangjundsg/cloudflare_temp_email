@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { Jwt } from 'hono/utils/jwt'
+import { isAddressCredentialActive } from '../address_archive'
 
 import utils, { checkCfTurnstile, getPasswords, getAdminPasswords, hashPassword } from '../utils';
 import i18n from '../i18n';
@@ -57,7 +58,7 @@ api.post('/open_api/credential_login', async (c) => {
     }
     try {
         const payload = await Jwt.verify(credential, c.env.JWT_SECRET, "HS256");
-        if (!payload.address) {
+        if (!(await isAddressCredentialActive(c, payload))) {
             return c.text(msgs.InvalidAddressCredentialMsg, 401)
         }
     } catch (error) {

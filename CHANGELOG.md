@@ -10,6 +10,7 @@
 
 ### Features
 
+- feat: |Admin| 删除邮箱地址改为安全归档：保留地址、收件和发件记录；后台可查看归档列表并恢复。归档后旧地址凭证失效，恢复后需重新获取凭证。
 - feat: |Address| 将自动邮箱名生成规则改为内置常见英文名 + 4 位随机月日（如 `emily0921`），替代固定前缀 + `YYYYMMDD`
 - feat: |Frontend| 新增 `DISABLE_SHOW_GITHUB_FOR_USER` 配置，可仅对普通用户隐藏 Header 的 GitHub/版本入口，admin 仍可见（issue #1041）
 - feat: |Frontend| 将邮箱地址凭证弹窗升级为“地址凭证与连接方式”，复用普通用户与 admin 创建邮箱结果弹窗；支持通过 `ENABLE_AGENT_EMAIL_INFO` 展示 AI Agent 接入信息，并通过 `SMTP_IMAP_PROXY_CONFIG` 展示 SMTP/IMAP 客户端连接信息

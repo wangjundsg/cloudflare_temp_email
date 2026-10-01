@@ -38,6 +38,7 @@ const selectedCount = computed(() => checkedRowKeys.value.length);
 const showMultiActionBar = computed(() => checkedRowKeys.value.length > 0);
 
 const addressQuery = ref("")
+const archivedOnly = ref(false)
 const sortBy = ref("")
 const sortOrder = ref("")
 
@@ -72,6 +73,23 @@ const deleteEmail = async () => {
     } finally {
         showDeleteAccount.value = false
     }
+}
+
+const restoreAddress = async (id) => {
+    try {
+        await api.fetch(`/admin/restore_address/${id}`, { method: 'POST' })
+        message.success(t('success'))
+        await fetchData()
+    } catch (error) {
+        message.error(error.message || 'error')
+    }
+}
+
+const toggleArchiveView = () => {
+    archivedOnly.value = !archivedOnly.value
+    checkedRowKeys.value = []
+    if (page.value === 1) fetchData()
+    else page.value = 1
 }
 
 const clearInbox = async () => {
@@ -188,9 +206,17 @@ const executeBatchOperation = async ({
 const multiActionDeleteAccounts = async () => {
     await executeBatchOperation({
         apiCall: (id) => api.adminDeleteAddress(id),
-        title: t('multiDelete') + ' ' + t('success'),
-        operationName: 'Delete'
+        title: t('multiArchive') + ' ' + t('success'),
+        operationName: 'Archive'
     });
+}
+
+const multiActionRestoreAccounts = async () => {
+    await executeBatchOperation({
+        apiCall: (id) => api.fetch(`/admin/restore_address/${id}`, { method: 'POST' }),
+        title: t('multiRestore') + ' ' + t('success'),
+        operationName: 'Restore'
+    })
 }
 
 const multiActionClearInbox = async () => {
@@ -222,6 +248,7 @@ const fetchData = async () => {
             `/admin/address`
             + `?limit=${pageSize.value}`
             + `&offset=${(page.value - 1) * pageSize.value}`
+            + (archivedOnly.value ? '&archived=true' : '')
             + (addressQuery.value ? `&query=${addressQuery.value}` : "")
             + (sortBy.value ? `&sort_by=${sortBy.value}` : "")
             + (sortOrder.value ? `&sort_order=${sortOrder.value}` : "")
@@ -362,6 +389,10 @@ const columns = computed(() => [
         title: t('actions'),
         key: 'actions',
         render(row) {
+            if (archivedOnly.value) {
+                return h(NButton, { tertiary: true, onClick: () => restoreAddress(row.id) },
+                    { default: () => t('restore') })
+            }
             return h('div', [
                 h(NMenu, {
                     mode: "horizontal",
@@ -454,7 +485,7 @@ const columns = computed(() => [
                                                 showDeleteAccount.value = true;
                                             }
                                         },
-                                        { default: () => t('delete') }
+                                        { default: () => t('archive') }
                                     )
                                 }
                             ]
@@ -479,11 +510,11 @@ onMounted(async () => {
     <div style="margin-top: 10px;">
         <AddressCredentialModal v-model:show="showEmailCredential" :address="curEmailAddress"
             :jwt="curEmailCredential" />
-        <n-modal v-model:show="showDeleteAccount" preset="dialog" :title="t('deleteAccount')">
-            <p>{{ t('deleteTip') }}</p>
+        <n-modal v-model:show="showDeleteAccount" preset="dialog" :title="t('archive')">
+            <p>{{ t('archiveTip') }}</p>
             <template #action>
                 <n-button :loading="loading" @click="deleteEmail" size="small" tertiary type="error">
-                    {{ t('deleteAccount') }}
+                    {{ t('archive') }}
                 </n-button>
             </template>
         </n-modal>
@@ -521,6 +552,9 @@ onMounted(async () => {
             <n-button @click="searchData" type="primary" tertiary>
                 {{ t('query') }}
             </n-button>
+            <n-button @click="toggleArchiveView" tertiary>
+                {{ archivedOnly ? t('activeAddresses') : t('archivedAddresses') }}
+            </n-button>
         </n-input-group>
 
         <n-space v-if="showMultiActionBar" style="margin-bottom: 10px;">
@@ -530,19 +564,22 @@ onMounted(async () => {
             <n-button @click="multiActionUnselectAll" tertiary>
                 {{ t('unselectAll') }}
             </n-button>
-            <n-popconfirm @positive-click="multiActionDeleteAccounts">
+            <n-button v-if="archivedOnly" @click="multiActionRestoreAccounts" tertiary type="primary">
+                {{ t('multiRestore') }}
+            </n-button>
+            <n-popconfirm v-else @positive-click="multiActionDeleteAccounts">
                 <template #trigger>
-                    <n-button tertiary type="error">{{ t('multiDelete') }}</n-button>
+                    <n-button tertiary type="warning">{{ t('multiArchive') }}</n-button>
                 </template>
-                {{ t('multiDeleteTip') }}
+                {{ t('archiveTip') }}
             </n-popconfirm>
-            <n-popconfirm @positive-click="multiActionClearInbox">
+            <n-popconfirm v-if="!archivedOnly" @positive-click="multiActionClearInbox">
                 <template #trigger>
                     <n-button tertiary type="warning">{{ t('multiClearInbox') }}</n-button>
                 </template>
                 {{ t('multiClearInboxTip') }}
             </n-popconfirm>
-            <n-popconfirm @positive-click="multiActionClearSentItems">
+            <n-popconfirm v-if="!archivedOnly" @positive-click="multiActionClearSentItems">
                 <template #trigger>
                     <n-button tertiary type="warning">{{ t('multiClearSentItems') }}</n-button>
                 </template>

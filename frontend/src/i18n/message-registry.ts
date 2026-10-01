@@ -899,12 +899,12 @@ export const MESSAGE_REGISTRY = {
       "zh": "确认密码"
     },
     "deleteAccount": {
-      "en": "Delete Account",
-      "zh": "删除账户"
+      "en": "Archive Address",
+      "zh": "归档地址"
     },
     "deleteAccountConfirm": {
-      "en": "Are you sure to delete your account and all emails for this account?",
-      "zh": "确定要删除你的账户和其中的所有邮件吗?"
+      "en": "Archive this address? Existing credentials will stop working. Mail is retained and an admin can restore the address.",
+      "zh": "确定归档此地址吗？现有凭证会失效，邮件会保留，管理员可恢复地址。"
     },
     "logout": {
       "en": "Logout",
@@ -1359,6 +1359,34 @@ export const MESSAGE_REGISTRY = {
     "clearSentItemsTip": {
       "en": "Are you sure to clear sent items for this email?",
       "zh": "确定要清空这个邮箱的发件箱吗？"
+    },
+    "archive": {
+      "en": "Archive",
+      "zh": "归档"
+    },
+    "archiveTip": {
+      "en": "Archive selected addresses? Their mail remains stored. Previous credentials are revoked permanently; an administrator can restore the addresses and issue new credentials.",
+      "zh": "确认归档选中的地址吗？邮件会保留，旧邮箱凭证将失效；管理员恢复后需重新获取凭证。"
+    },
+    "archivedAddresses": {
+      "en": "Archived addresses",
+      "zh": "已归档地址"
+    },
+    "activeAddresses": {
+      "en": "Active addresses",
+      "zh": "正常地址"
+    },
+    "restore": {
+      "en": "Restore",
+      "zh": "恢复"
+    },
+    "multiArchive": {
+      "en": "Archive selected",
+      "zh": "批量归档"
+    },
+    "multiRestore": {
+      "en": "Restore selected",
+      "zh": "批量恢复"
     },
     "created_at": {
       "en": "Created At",

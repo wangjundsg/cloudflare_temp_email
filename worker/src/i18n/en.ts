@@ -140,7 +140,7 @@ const messages: LocaleMessages = {
     TgBindFailedMsg: "Binding failed:",
     TgUnbindSuccessMsg: "Unbinding successful:",
     TgUnbindFailedMsg: "Unbinding failed:",
-    TgDeleteSuccessMsg: "Deleted successfully:",
+    TgDeleteSuccessMsg: "Archived successfully (mail retained; ask an admin to restore):",
     TgDeleteFailedMsg: "Delete failed:",
     TgAddressListMsg: "Address list:",
     TgGetAddressFailedMsg: "Failed to get address list:",

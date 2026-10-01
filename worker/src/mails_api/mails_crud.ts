@@ -2,7 +2,7 @@ import { Context } from 'hono'
 
 import i18n from '../i18n';
 import { getBooleanValue } from '../utils';
-import { handleMailListQuery, deleteAddressWithData, updateAddressUpdatedAt } from '../common'
+import { handleMailListQuery, archiveUserAddress, updateAddressUpdatedAt } from '../common'
 import { resolveRawEmailRow } from '../gzip'
 import { getSendBalanceState } from './send_balance';
 
@@ -83,7 +83,7 @@ const getSettings = async (c: Context<HonoCustomType>) => {
 
 const deleteAddress = async (c: Context<HonoCustomType>) => {
     const { address, address_id } = c.get("jwtPayload")
-    const success = await deleteAddressWithData(c, address, address_id);
+    const success = await archiveUserAddress(c, address, address_id);
     return c.json({ success });
 };
 

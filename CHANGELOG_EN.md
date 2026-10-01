@@ -10,6 +10,7 @@
 
 ### Features
 
+- feat: |Admin| Archive addresses on deletion while retaining the address, inbox, and sent mail. Admins can list and restore archived addresses. Existing address credentials are revoked and must be reissued after restore.
 - feat: |Address| Change automatic mailbox name generation to built-in common English names plus a random 4-digit month/day suffix (for example `emily0921`), replacing fixed prefix + `YYYYMMDD`
 - feat: |Frontend| Add `DISABLE_SHOW_GITHUB_FOR_USER` to hide the Header GitHub/version entry from normal users while keeping it visible to admin users (issue #1041)
 - feat: |Frontend| Upgrade the address credential dialog to "Address Credentials & Connection Methods" and reuse it for both normal users and admin-created addresses; support showing AI Agent access via `ENABLE_AGENT_EMAIL_INFO` and SMTP/IMAP client settings via `SMTP_IMAP_PROXY_CONFIG`

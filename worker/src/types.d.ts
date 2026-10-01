@@ -125,6 +125,7 @@ type Bindings = {
 type JwtPayload = {
     address: string
     address_id: number
+    address_generation?: string
 }
 
 type UserPayload = {

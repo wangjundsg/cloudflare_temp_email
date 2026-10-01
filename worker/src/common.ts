@@ -1,9 +1,8 @@
 import { Context } from 'hono';
-import { Jwt } from 'hono/utils/jwt'
+import { archiveAddress, getAddressAccessState, signAddressJwt } from './address_archive'
 import { WorkerMailerOptions } from 'worker-mailer';
 
 import { getBooleanValue, getDomains, getStringArray, getStringValue, getIntValue, getUserRoles, getDefaultDomains, getJsonSetting, getAnotherWorkerList, hashPassword, getJsonObjectValue, getRandomSubdomainDomains, getDomainMapValue, normalizeDomains, trimLower } from './utils';
-import { unbindTelegramByAddress } from './telegram_api/common';
 import { CONSTANTS } from './constants';
 import { AddressCreationSettings, AdminWebhookSettings, WebhookMail, WebhookSettings } from './models';
 import i18n from './i18n';
@@ -426,10 +425,7 @@ export const newAddress = async (
             const generatedPassword = await generatePasswordForAddress(c, address);
 
             // create jwt
-            const jwt = await Jwt.sign({
-                address: address,
-                address_id: address_id
-            }, c.env.JWT_SECRET, "HS256")
+            const jwt = await signAddressJwt(c, address, address_id);
             return {
                 jwt: jwt,
                 address: address,
@@ -498,7 +494,12 @@ export const cleanup = async (
             break;
         case "mails":
             await c.env.DB.prepare(`
-                DELETE FROM raw_mails WHERE created_at < datetime('now', '-${cleanDays} day')`
+                DELETE FROM raw_mails WHERE created_at < datetime('now', '-${cleanDays} day')
+                AND NOT EXISTS (
+                    SELECT 1 FROM address a JOIN settings s
+                    ON s.key = 'address_archived:' || a.id
+                    WHERE a.name = raw_mails.address
+                )`
             ).run();
             break;
         case "mails_unknow":
@@ -509,7 +510,12 @@ export const cleanup = async (
             break;
         case "sendbox":
             await c.env.DB.prepare(`
-                DELETE FROM sendbox WHERE created_at < datetime('now', '-${cleanDays} day')`
+                DELETE FROM sendbox WHERE created_at < datetime('now', '-${cleanDays} day')
+                AND NOT EXISTS (
+                    SELECT 1 FROM address a JOIN settings s
+                    ON s.key = 'address_archived:' || a.id
+                    WHERE a.name = sendbox.address
+                )`
             ).run();
             break;
         case "emptyAddress":
@@ -535,35 +541,33 @@ const batchDeleteAddressWithData = async (
     c: Context<HonoCustomType>,
     addressQueryCondition: string,
 ): Promise<boolean> => {
-    await c.env.DB.prepare(
+    const eligibleCondition = `(${addressQueryCondition}) AND NOT EXISTS (`
+        + `SELECT 1 FROM settings s WHERE s.key = 'address_archived:' || address.id)`;
+    const statements = [c.env.DB.prepare(
         `DELETE FROM raw_mails WHERE address IN ( ` +
-        `SELECT name FROM address WHERE ${addressQueryCondition})`
-    ).run();
-    await c.env.DB.prepare(
+        `SELECT name FROM address WHERE ${eligibleCondition})`
+    ), c.env.DB.prepare(
         `DELETE FROM sendbox WHERE address IN ( ` +
-        `SELECT name FROM address WHERE ${addressQueryCondition})`
-    ).run();
-    await c.env.DB.prepare(
+        `SELECT name FROM address WHERE ${eligibleCondition})`
+    ), c.env.DB.prepare(
         `DELETE FROM auto_reply_mails WHERE address IN ( ` +
-        `SELECT name FROM address WHERE ${addressQueryCondition})`
-    ).run();
-    await c.env.DB.prepare(
+        `SELECT name FROM address WHERE ${eligibleCondition})`
+    ), c.env.DB.prepare(
         `DELETE FROM address_sender WHERE address IN ( ` +
-        `SELECT name FROM address WHERE ${addressQueryCondition})`
-    ).run();
-    await c.env.DB.prepare(
+        `SELECT name FROM address WHERE ${eligibleCondition})`
+    ), c.env.DB.prepare(
         `DELETE FROM users_address WHERE address_id IN ( ` +
-        `SELECT id FROM address WHERE ${addressQueryCondition})`
-    ).run();
-    // delete address
-    await c.env.DB.prepare(`
-        DELETE FROM address WHERE ${addressQueryCondition}`
-    ).run();
+        `SELECT id FROM address WHERE ${eligibleCondition})`
+    ), c.env.DB.prepare(`
+        DELETE FROM address WHERE ${eligibleCondition}`
+    )];
+    const results = await c.env.DB.batch(statements);
+    if (results.some((result) => !result.success)) throw new Error('Failed to clean addresses');
     return true;
 }
 
 
-export const deleteAddressWithData = async (
+export const archiveUserAddress = async (
     c: Context<HonoCustomType>,
     address: string | undefined | null,
     address_id: number | undefined | null
@@ -589,30 +593,7 @@ export const deleteAddressWithData = async (
     if (!address || !address_id) {
         throw new Error(msgs.AddressNotFoundMsg);
     }
-    // unbind telegram
-    await unbindTelegramByAddress(c, address);
-    // delete address and related data
-    const { success: mailSuccess } = await c.env.DB.prepare(
-        `DELETE FROM raw_mails WHERE address = ? `
-    ).bind(address).run();
-    const { success: sendAccess } = await c.env.DB.prepare(
-        `DELETE FROM address_sender WHERE address = ? `
-    ).bind(address).run();
-    const { success: sendboxSuccess } = await c.env.DB.prepare(
-        `DELETE FROM sendbox WHERE address = ? `
-    ).bind(address).run();
-    const { success: addressSuccess } = await c.env.DB.prepare(
-        `DELETE FROM users_address WHERE address_id = ? `
-    ).bind(address_id).run();
-    const { success: autoReplySuccess } = await c.env.DB.prepare(
-        `DELETE FROM auto_reply_mails WHERE address = ? `
-    ).bind(address).run();
-    const { success } = await c.env.DB.prepare(
-        `DELETE FROM address WHERE name = ? `
-    ).bind(address).run();
-    if (!success || !mailSuccess || !sendboxSuccess || !addressSuccess || !sendAccess || !autoReplySuccess) {
-        throw new Error(msgs.OperationFailedMsg)
-    }
+    if (!(await archiveAddress(c, address_id))) throw new Error(msgs.OperationFailedMsg);
     return true;
 }
 
@@ -828,6 +809,9 @@ export async function triggerWebhook(
     if (!c.env.KV || !getBooleanValue(c.env.ENABLE_WEBHOOK)) {
         return
     }
+    const addressRow = await c.env.DB.prepare(`SELECT id FROM address WHERE name = ?`)
+        .bind(address).first<{ id: number }>();
+    const archived = addressRow ? (await getAddressAccessState(c, addressRow.id)).archived : false;
     const webhookList: WebhookSettings[] = []
 
     // admin mail webhook
@@ -838,7 +822,7 @@ export async function triggerWebhook(
 
     // user mail webhook
     const adminSettings = await c.env.KV.get<AdminWebhookSettings>(CONSTANTS.WEBHOOK_KV_SETTINGS_KEY, "json");
-    if (!adminSettings?.enableAllowList || adminSettings?.allowList.includes(address)) {
+    if (!archived && (!adminSettings?.enableAllowList || adminSettings?.allowList.includes(address))) {
         const settings = await c.env.KV.get<WebhookSettings>(
             `${CONSTANTS.WEBHOOK_KV_USER_SETTINGS_KEY}:${address}`, "json"
         );

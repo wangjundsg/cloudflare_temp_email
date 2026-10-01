@@ -16,6 +16,7 @@ import { email } from './email';
 import { scheduled } from './scheduled';
 import { getPasswords, getBooleanValue, getDomains, checkIsAdmin } from './utils';
 import { checkAccessControl } from './ip_blacklist';
+import { isAddressCredentialActive } from './address_archive';
 
 const API_PATHS = [
 	"/api/",
@@ -162,7 +163,13 @@ app.use('/api/*', async (c, next) => {
 	}
 
 	try {
-		return await jwt({ secret: c.env.JWT_SECRET, alg: "HS256" })(c, next);
+		await jwt({ secret: c.env.JWT_SECRET, alg: "HS256" })(c, async () => {});
+		const payload = c.get('jwtPayload');
+		if (!(await isAddressCredentialActive(c, payload))) {
+			const msgs = i18n.getMessages(c.get('lang') || c.env.DEFAULT_LANG);
+			return c.text(msgs.InvalidAddressCredentialMsg, 401);
+		}
+		await next();
 	} catch (e) {
 		console.warn(e);
 		const lang = c.get("lang") || c.env.DEFAULT_LANG;

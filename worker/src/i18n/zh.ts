@@ -140,7 +140,7 @@ const messages: LocaleMessages = {
     TgBindFailedMsg: "绑定失败:",
     TgUnbindSuccessMsg: "解绑成功:",
     TgUnbindFailedMsg: "解绑失败:",
-    TgDeleteSuccessMsg: "删除成功:",
+    TgDeleteSuccessMsg: "归档成功（邮件已保留，需管理员恢复）:",
     TgDeleteFailedMsg: "删除失败:",
     TgAddressListMsg: "地址列表:",
     TgGetAddressFailedMsg: "获取地址列表失败:",

@@ -36,6 +36,17 @@ The Accounts tab in the admin console supports column sorting. Click the column 
 
 When searching for email addresses, pagination automatically resets to page 1.
 
+## Safe address archive and restore
+
+"Archive address" hides an address and revokes its existing credentials while retaining its registration, inbox, sent mail, and user bindings. The address name remains reserved and can still receive mail. Admins can inspect the mail count and messages in the "Archived addresses" list, then restore the address. Address deletion from the regular mailbox page or Telegram also archives rather than deleting historical mail.
+
+Previous credentials do not become valid again after restore. Admins or bound users must obtain a new address credential; Telegram users must bind the new credential. Clearing the inbox or sent items is a separate operation and is unavailable while archived.
+
+Built-in scheduled cleanup skips archived addresses and their mail. Custom SQL cleanup is not covered; review its conditions before enabling it.
+New mail for an archived address is still stored, but its user webhook, Telegram push, and auto-reply no longer run. Admin global notifications and domain-level forwarding rules retain their existing configuration.
+
+API: `GET /admin/address?archived=true` lists archived addresses; `DELETE /admin/delete_address/:id` archives one; `POST /admin/restore_address/:id` restores one. The latter two operations are idempotent and use the existing admin authentication.
+
 ## If your website is for private access only, you can disable this check
 
 `DISABLE_ADMIN_PASSWORD_CHECK = true`

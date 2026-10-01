@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { Jwt } from 'hono/utils/jwt'
+import { getAddressAccessState, signAddressJwt } from '../address_archive'
 
 import { isAddressCountLimitReached } from "../utils"
 import { unbindTelegramByAddress } from '../telegram_api/common';
@@ -25,6 +25,9 @@ const UserBindAddressModule = {
             `SELECT id FROM address where id = ?`
         ).bind(address_id).first("id");
         if (!db_address_id) {
+            return c.text(msgs.AddressNotFoundMsg, 400)
+        }
+        if ((await getAddressAccessState(c, address_id)).archived) {
             return c.text(msgs.AddressNotFoundMsg, 400)
         }
         // check if user exists
@@ -131,6 +134,7 @@ const UserBindAddressModule = {
             + ` JOIN users_address ua `
             + ` ON ua.address_id = a.id `
             + ` WHERE ua.user_id = ?`
+            + ` AND NOT EXISTS (SELECT 1 FROM settings s WHERE s.key = 'address_archived:' || a.id)`
             + ` ORDER BY a.id DESC`
         ).bind(user_id).all<{
             id: number;
@@ -157,14 +161,15 @@ const UserBindAddressModule = {
         if (!db_user_id) {
             return c.text(msgs.AddressNotBindedMsg, 400)
         }
+        if ((await getAddressAccessState(c, address_id)).archived) {
+            return c.text(msgs.AddressNotBindedMsg, 400)
+        }
         // generate jwt
         const name = await c.env.DB.prepare(
             `SELECT name FROM address WHERE id = ? `
-        ).bind(address_id).first("name");
-        const jwt = await Jwt.sign({
-            address: name,
-            address_id: address_id
-        }, c.env.JWT_SECRET, "HS256")
+        ).bind(address_id).first<string>("name");
+        if (!name) return c.text(msgs.AddressNotFoundMsg, 404)
+        const jwt = await signAddressJwt(c, name, address_id);
         return c.json({
             jwt: jwt
         })
@@ -178,6 +183,9 @@ const UserBindAddressModule = {
             `SELECT name FROM address where id = ?`
         ).bind(address_id).first<string>("name");
         if (!address) {
+            return c.text(msgs.AddressNotFoundMsg, 400)
+        }
+        if ((await getAddressAccessState(c, address_id)).archived) {
             return c.text(msgs.AddressNotFoundMsg, 400)
         }
         // check if user exists

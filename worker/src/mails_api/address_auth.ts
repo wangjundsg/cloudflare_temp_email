@@ -1,7 +1,8 @@
 import { Context } from 'hono';
 import i18n from '../i18n';
 import utils, { getBooleanValue, hashPassword, checkCfTurnstile } from '../utils';
-import { Jwt } from 'hono/utils/jwt';
+import { signAddressJwt } from '../address_archive';
+import { getAddressAccessState } from '../address_archive';
 
 export default {
     // 修改地址密码
@@ -66,6 +67,9 @@ export default {
         if (!address) {
             return c.text(msgs.AddressNotFoundMsg, 404);
         }
+        if ((await getAddressAccessState(c, address.id)).archived) {
+            return c.text(msgs.AddressNotFoundMsg, 404);
+        }
 
         // NOTE: password is the frontend SHA-256 hash, compared directly with address.password.
         if (address.password !== password) {
@@ -73,10 +77,7 @@ export default {
         }
 
         // 创建JWT
-        const jwt = await Jwt.sign({
-            address: address.name,
-            address_id: address.id
-        }, c.env.JWT_SECRET, "HS256");
+        const jwt = await signAddressJwt(c, address.name, address.id);
 
         return c.json({
             jwt: jwt,

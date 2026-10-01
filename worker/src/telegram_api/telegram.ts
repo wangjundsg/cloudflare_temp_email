@@ -4,6 +4,7 @@ import { Telegraf, Context as TgContext, Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 
 import { CONSTANTS } from "../constants";
+import { getAddressAccessState } from '../address_archive';
 import { getBooleanValue, getDomains, getJsonObjectValue, trimLower } from '../utils';
 import { TelegramSettings } from "./settings";
 import { sendTelegramAttachments } from "./tg_file_upload";
@@ -417,6 +418,9 @@ export async function sendMailToTelegram(
     if (!c.env.TELEGRAM_BOT_TOKEN || !c.env.KV) {
         return;
     }
+    const addressRow = await c.env.DB.prepare(`SELECT id FROM address WHERE name = ?`)
+        .bind(address).first<{ id: number }>();
+    if (addressRow && (await getAddressAccessState(c, addressRow.id)).archived) return;
     const userId = await c.env.KV.get(`${CONSTANTS.TG_KV_PREFIX}:${address}`);
     const settings = await c.env.KV.get<TelegramSettings>(CONSTANTS.TG_KV_SETTINGS_KEY, "json");
     const globalPush = settings?.enableGlobalMailPush && settings?.globalMailPushList;
@@ -458,6 +462,8 @@ export async function sendMailToTelegram(
 
     if (userId) {
         const userMsgs = await getTgMessages(c, undefined, userId);
-        await buildAndSend(userId, userMsgs);
+        const jwtList = await c.env.KV.get<string[]>(`${CONSTANTS.TG_KV_PREFIX}:${userId}`, 'json') || [];
+        const { addressIdMap } = await jwtListToAddressData(c, jwtList, userMsgs);
+        if (address in addressIdMap) await buildAndSend(userId, userMsgs);
     }
 }
