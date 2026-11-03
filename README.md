@@ -1,211 +1,36 @@
+# 工作台域名邮箱
 
-## 本次整理边界（2026-11-03）
+[English](README_EN.md)
 
-本项目是以 [gpt-free-service](https://github.com/wangjundsg/gpt-free-service) 为中心的本地组合系统的一部分。本轮只整理主工作台、iCloud邮箱服务、Cloudflare域名邮箱和toSub2授权sidecar。OpenBrowser旧项目已由维护者指定暂停开发，不在本轮整理范围；保留的客户端调用不代表重启该项目开发。
+这是 [Free 权益工作台](https://github.com/wangjundsg/gpt-free-service) 使用的域名邮箱服务，基于 dreamhunter2333/cloudflare_temp_email 的 MIT fork。本地目录为 `cloudflare_temp_email_edit`，GitHub 仓库为 `wangjundsg/cloudflare_temp_email`。
 
-当前状态见 [STATUS.md](STATUS.md)，分支见 [BRANCHES.md](BRANCHES.md)，私有数据边界见 [DATA-BOUNDARY.md](DATA-BOUNDARY.md)，来源与许可见 [VENDOR.md](VENDOR.md)。源码上传不代表已重启或部署生产服务。
+## 当前用途
 
----
+为账号邮箱换绑提供目标地址、收件和验证码。主工作台处理换绑任务、账号身份核对和结果落账；此服务管理域名地址和邮件。iCloud 邮箱工作台继续承担当前注册来源，两者不混作一个库存。
 
-<!-- markdownlint-disable-file MD033 MD045 -->
-# Cloudflare 临时邮箱 - 免费搭建临时邮件服务
+采用的核心组成是 Worker API、D1 邮件数据、Email Routing 收件、邮件解析和管理前端。上游的公共演示、推广链接和其他可选产品能力不作为本工作台功能列表。
 
-<p align="center">
-  <a href="https://temp-mail-docs.awsl.uk" target="_blank">
-    <img alt="docs" src="https://img.shields.io/badge/docs-grey?logo=vitepress">
-  </a>
-  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email/releases/latest" target="_blank">
-    <img src="https://img.shields.io/github/v/release/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email/blob/main/LICENSE" target="_blank">
-    <img alt="MIT License" src="https://img.shields.io/github/license/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email/graphs/contributors" target="_blank">
-   <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="">
-    <img alt="GitHub top language" src="https://img.shields.io/github/languages/top/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="">
-    <img src="https://img.shields.io/github/last-commit/dreamhunter2333/cloudflare_temp_email">
-  </a>
-</p>
+## 配置关系
 
-<p align="center">
-  <a href="https://hellogithub.com/repository/2ccc64bb1ba346b480625f584aa19eb1" target="_blank">
-    <img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=2ccc64bb1ba346b480625f584aa19eb1&claim_uid=FxNypXK7UQ9OECT" alt="Featured｜HelloGitHub" height="30"/>
-  </a>
-</p>
+| 部分 | 本机/部署配置 | 用途 |
+| --- | --- | --- |
+| Worker | 从 `worker/wrangler.toml.template` 建立私有配置，核对 D1 和域名绑定 | 邮件 API 与收件处理 |
+| 前端 | 从 `frontend/.env.pages.example` 建立本地 `.env.pages` | 指向自己的 Worker API；VITE 变量进入浏览器，不得放管理员秘密 |
+| 主工作台 | 配置 Cloudflare 管理入口、鉴权和已验证目标域名 | 请求地址与收取换绑验证码 |
 
-<p align="center">
-  <a href="README.md">中文文档</a> |
-  <a href="README_EN.md">English Document</a>
-</p>
+管理接口、地址 JWT 和可选全局密码各自有鉴权语义，按现有部署配置使用。具体 API 和部署字段仍可查阅仓库内 `vitepress-docs/docs/zh/` 技术参考；该上游参考不代表每项能力在主工作台启用。
 
-> 本项目仅供学习和个人用途，请勿将其用于任何违法行为，否则后果自负。
+## 验证
 
-**一个功能完整的临时邮箱服务！**
-
-- **完全免费** - 基于 Cloudflare 免费服务构建，零成本运行
-- **高性能** - Rust WASM 邮件解析，响应速度极快
-- **现代化界面** - 响应式设计，支持多语言，操作简便
-- **地址密码** - 支持为邮箱地址设置独立密码，增强安全性
-- **Agent 友好** - 内置邮箱 [`skill`](skills/cf-temp-mail-agent-mail/SKILL.md)，方便 AI agent 使用邮箱
-- **移动端管理** - 社区客户端 [CloudMail](https://github.com/Lur1N77777/CloudMail)，支持 Android 管理后台和邮箱管理
-
-## 部署文档 - 快速开始
-
-[部署文档](https://temp-mail-docs.awsl.uk) | [Github Action 部署文档](https://temp-mail-docs.awsl.uk/zh/guide/actions/github-action.html)
-
-<a href="https://temp-mail-docs.awsl.uk/zh/guide/actions/github-action.html">
-  <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare Workers" height="32">
-</a>
-
-## 更新日志
-
-查看 [CHANGELOG](CHANGELOG.md) 了解最新更新内容。
-
-## 在线体验
-
-立即体验 → [https://mail.awsl.uk/](https://mail.awsl.uk/)
-
-<details>
-<summary>服务状态监控（点击收缩/展开）</summary>
-
-|                                            |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Backend](https://temp-email-api.awsl.uk/) | [![Deploy Backend Production](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/backend_deploy.yaml/badge.svg)](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/backend_deploy.yaml) ![](https://uptime.aks.awsl.icu/api/badge/10/status) ![](https://uptime.aks.awsl.icu/api/badge/10/uptime) ![](https://uptime.aks.awsl.icu/api/badge/10/ping) ![](https://uptime.aks.awsl.icu/api/badge/10/avg-response) ![](https://uptime.aks.awsl.icu/api/badge/10/cert-exp) ![](https://uptime.aks.awsl.icu/api/badge/10/response) |
-| [Frontend](https://mail.awsl.uk/)          | [![Deploy Frontend](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/frontend_deploy.yaml/badge.svg)](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/frontend_deploy.yaml) ![](https://uptime.aks.awsl.icu/api/badge/12/status) ![](https://uptime.aks.awsl.icu/api/badge/12/uptime) ![](https://uptime.aks.awsl.icu/api/badge/12/ping) ![](https://uptime.aks.awsl.icu/api/badge/12/avg-response) ![](https://uptime.aks.awsl.icu/api/badge/12/cert-exp) ![](https://uptime.aks.awsl.icu/api/badge/12/response)         |
-
-</details>
-
-<details>
-<summary>Star History（点击收缩/展开）</summary>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=dreamhunter2333/cloudflare_temp_email&type=Date&theme=dark" />
-  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=dreamhunter2333/cloudflare_temp_email&type=Date" />
-  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=dreamhunter2333/cloudflare_temp_email&type=Date" />
-</picture>
-
-</details>
-
-<details open>
-<summary>目录（点击收缩/展开）</summary>
-
-- [Cloudflare 临时邮箱 - 免费搭建临时邮件服务](#cloudflare-临时邮箱---免费搭建临时邮件服务)
-  - [部署文档 - 快速开始](#部署文档---快速开始)
-  - [更新日志](#更新日志)
-  - [在线体验](#在线体验)
-  - [核心功能](#核心功能)
-    - [邮件处理](#邮件处理)
-    - [用户管理](#用户管理)
-    - [管理功能](#管理功能)
-    - [多语言与界面](#多语言与界面)
-    - [集成与扩展](#集成与扩展)
-  - [技术架构](#技术架构)
-    - [系统架构](#系统架构)
-    - [技术栈](#技术栈)
-    - [主要组件](#主要组件)
-  - [加入社区](#加入社区)
-
-</details>
-
-## 核心功能
-
-<details open>
-<summary>核心功能详情（点击收缩/展开）</summary>
-
-### 邮件处理
-
-- [x] 使用 `rust wasm` 解析邮件，解析速度快，几乎所有邮件都能解析，node 的解析模块解析邮件失败的邮件，rust wasm 也能解析成功
-- [x] **AI 邮件识别** - 使用 Cloudflare Workers AI 自动提取邮件中的验证码、认证链接、服务链接等重要信息
-- [x] 支持为指定基础域名创建随机二级域名邮箱地址，更适合收件隔离场景
-- [x] 支持发送邮件，支持 `DKIM` 验证
-- [x] 支持 `SMTP` 和 `Resend` 等多种发送方式 
-- [x] 增加查看 `附件` 功能，支持附件图片显示
-- [x] 支持 S3 附件存储和删除功能
-- [x] 垃圾邮件检测和黑白名单配置
-- [x] 邮件转发功能，支持全局转发地址
-
-### 用户管理
-
-- [x] 使用 `凭证` 重新登录之前的邮箱
-- [x] 添加完整的用户注册登录功能，可绑定邮箱地址，绑定后可自动获取邮箱JWT凭证切换不同邮箱
-- [x] 支持 `OAuth2` 第三方登录（Github、Authentik 等）
-- [x] 支持 `Passkey` 无密码登录
-- [x] 用户角色管理，支持多角色域名和前缀配置
-- [x] 用户收件箱查看，支持地址和关键词过滤
-
-### 管理功能
-
-- [x] 完整的 admin 控制台
-- [x] `admin` 后台创建无前缀邮箱
-- [x] admin 用户管理页面，增加用户地址查看功能
-- [x] 定时清理功能，支持多种清理策略
-- [x] 获取自定义名字的邮箱，`admin` 可配置黑名单
-- [x] 增加访问密码，可作为私人站点
-
-### 多语言与界面
-
-- [x] 前后台均支持多语言
-- [x] 现代化 UI 设计，支持响应式布局
-- [x] 支持 Google Ads 集成
-- [x] 使用 shadow DOM 防止样式污染
-- [x] 支持 URL JWT 参数自动登录
-
-### 集成与扩展
-
-- [x] 完整的 `Telegram Bot` 支持，以及 `Telegram` 推送，Telegram Bot 小程序
-- [x] 添加 `SMTP proxy server`，支持 `SMTP` 发送邮件，`IMAP` 查看邮件
-- [x] Webhook 支持，消息推送集成
-- [x] 支持 `CF Turnstile` 人机验证
-- [x] 限流配置，防止滥用
-- [x] **Agent 友好**：内置 [`cf-temp-mail-agent-mail`](skills/cf-temp-mail-agent-mail/SKILL.md) skill，AI agent 可直接消费邮箱，详见 [文档](vitepress-docs/docs/zh/guide/feature/agent-email.md)
-- [x] 社区移动端管理客户端：[CloudMail](https://github.com/Lur1N77777/CloudMail) 基于 Expo / React Native，面向本项目兼容 API，提供 Android 管理员后台、地址管理、收件/发件/未知邮件、验证码快捷复制、OLED 黑主题和本地分组。
-
-</details>
-
-## 技术架构
-
-<details>
-<summary>技术架构详情（点击收缩/展开）</summary>
-
-### 系统架构
-
-- **数据库**: Cloudflare D1 作为主数据库
-- **前端部署**: 使用 Cloudflare Pages 部署前端
-- **后端部署**: 使用 Cloudflare Workers 部署后端
-- **邮件转发**: 使用 Cloudflare Email Routing
-
-### 技术栈
-
-- **前端**: Vue 3 + Vite + TypeScript
-- **后端**: TypeScript + Cloudflare Workers
-- **邮件解析**: Rust WASM (mail-parser-wasm)
-- **数据库**: Cloudflare D1 (SQLite)
-- **存储**: Cloudflare KV + R2 (可选 S3)
-- **代理服务**: Python SMTP/IMAP Proxy Server
-
-### 主要组件
-
-- **Worker**: 核心后端服务
-- **Frontend**: Vue 3 用户界面
-- **Mail Parser WASM**: Rust 邮件解析模块
-- **SMTP Proxy Server**: Python 邮件代理服务
-- **Pages Functions**: Cloudflare Pages 中间件
-- **Documentation**: VitePress 文档站点
-
-</details>
-
-### 提醒
-
-- 在Resend添加域名记录时，如果您域名解析服务商正在托管您的3级域名a.b.com，请删除Resend生成的默认name中二级域名前缀b，否则将会添加a.b.b.com，导致验证失败。添加记录后，可通过
-```bash
-nslookup -qt="mx" a.b.com 1.1.1.1
+```powershell
+npm --prefix worker run lint
+npm --prefix frontend run build:release
 ```
-进行验证。 
 
-## 加入社区
+Worker 常规 build 需要自己的 Wrangler 配置。无生产配置时的显式入口 dry-run 见 [STATUS](STATUS.md)；它只验证打包，不部署服务。DNS、D1 迁移和真实收件需在部署时单独核对。
 
-- [Telegram](https://t.me/cloudflare_temp_email)
+## 维护边界
+
+保留上游来源与 MIT LICENSE；现有 fork 关系不变。地址、邮件、管理员凭据、Worker secrets、真实 Pages 配置不提交。状态、分支与边界见 [STATUS](STATUS.md)、[BRANCHES](BRANCHES.md)、[DATA-BOUNDARY](DATA-BOUNDARY.md)、[VENDOR](VENDOR.md)。
+
+旧上游首页与宣传说明移入[归档仓库](https://github.com/wangjundsg/gpt-workbench-archive/tree/main/snapshots/cloudflare_temp_email_edit)。本 README 只维护与当前工作台相关的用途。

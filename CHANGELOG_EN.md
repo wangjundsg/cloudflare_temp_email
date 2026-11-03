@@ -8,6 +8,8 @@
 
 ## v1.9.0(main)
 
+- docs: |Workbench| Rewrite both front pages around domain mail for account email changes; archive former upstream front pages separately.
+
 - docs: |Maintenance| Document workbench integration, status, branches, data boundaries and provenance; keep live Pages settings local and provide a public template.
 
 ### Features
