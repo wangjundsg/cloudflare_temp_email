@@ -8,6 +8,8 @@
 
 ## v1.9.0(main)
 
+- docs: |Maintenance| Document workbench integration, status, branches, data boundaries and provenance; keep live Pages settings local and provide a public template.
+
 ### Features
 
 - feat: |Admin| Archive addresses on deletion while retaining the address, inbox, and sent mail. Admins can list and restore archived addresses. Existing address credentials are revoked and must be reissued after restore.

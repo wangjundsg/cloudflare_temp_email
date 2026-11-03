@@ -1,3 +1,12 @@
+
+## 本次整理边界（2026-11-03）
+
+本项目是以 [gpt-free-service](https://github.com/wangjundsg/gpt-free-service) 为中心的本地组合系统的一部分。本轮只整理主工作台、iCloud邮箱服务、Cloudflare域名邮箱和toSub2授权sidecar。OpenBrowser旧项目已由维护者指定暂停开发，不在本轮整理范围；保留的客户端调用不代表重启该项目开发。
+
+当前状态见 [STATUS.md](STATUS.md)，分支见 [BRANCHES.md](BRANCHES.md)，私有数据边界见 [DATA-BOUNDARY.md](DATA-BOUNDARY.md)，来源与许可见 [VENDOR.md](VENDOR.md)。源码上传不代表已重启或部署生产服务。
+
+---
+
 <!-- markdownlint-disable-file MD033 MD045 -->
 # Cloudflare 临时邮箱 - 免费搭建临时邮件服务
 
